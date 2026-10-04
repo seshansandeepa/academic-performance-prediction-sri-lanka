@@ -1,26 +1,39 @@
 """
-Preprocess the Google Form survey dataset.
+Final preprocessing workflow for the academic performance
+prediction research project.
 
-Before running:
-1. Put the CSV file inside data/raw/
-2. Rename it to raw_survey_responses.csv
-3. Run from the project root:
-   python src/preprocessing.py
+The raw participant dataset is private and is NOT included
+in the public GitHub repository.
+
+Supported input formats:
+- Excel (.xlsx)
+- CSV (.csv)
 """
 
 from pathlib import Path
 import re
 
+import numpy as np
 import pandas as pd
 
 
-RAW_FILE = Path("data/raw/raw_survey_responses.csv")
-OUTPUT_FILE = Path("data/processed/cleaned_survey_data.csv")
-REPORT_FILE = Path("data/processed/preprocessing_report.txt")
+# ---------------------------------------------------------
+# FILE LOCATIONS
+# ---------------------------------------------------------
+
+RAW_FOLDER = Path("data/raw")
+PROCESSED_FOLDER = Path("data/processed")
+
+OUTPUT_FILE = PROCESSED_FOLDER / "cleaned_survey_data.csv"
+REPORT_FILE = PROCESSED_FOLDER / "preprocessing_report.txt"
 
 TARGET = "academic_performance_level"
 
-# Short names for the 23 Google Form questions
+
+# ---------------------------------------------------------
+# SURVEY QUESTION NAMES
+# ---------------------------------------------------------
+
 QUESTION_NAMES = {
     1: "consent",
     2: "currently_studying",
@@ -47,7 +60,11 @@ QUESTION_NAMES = {
     23: "academic_support",
 }
 
-# The 16 approved predictor variables
+
+# ---------------------------------------------------------
+# FINAL 16 PREDICTORS
+# ---------------------------------------------------------
+
 PREDICTORS = [
     "year_of_study",
     "degree_area",
@@ -68,58 +85,132 @@ PREDICTORS = [
 ]
 
 
-def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Rename long Google Form headings to short names."""
+# ---------------------------------------------------------
+# FIND RAW DATASET
+# ---------------------------------------------------------
+
+def find_raw_file():
+    """
+    Find one private survey dataset inside data/raw/.
+
+    Excel is preferred because the final research workflow
+    used an Excel export.
+    """
+
+    excel_files = list(RAW_FOLDER.glob("*.xlsx"))
+    csv_files = list(RAW_FOLDER.glob("*.csv"))
+
+    if excel_files:
+        return excel_files[0]
+
+    if csv_files:
+        return csv_files[0]
+
+    return None
+
+
+# ---------------------------------------------------------
+# LOAD DATA
+# ---------------------------------------------------------
+
+def load_dataset(file_path):
+    """Load Excel or CSV survey data."""
+
+    if file_path.suffix.lower() == ".xlsx":
+        return pd.read_excel(file_path)
+
+    if file_path.suffix.lower() == ".csv":
+        return pd.read_csv(file_path)
+
+    raise ValueError("Unsupported file format.")
+
+
+# ---------------------------------------------------------
+# COLUMN CLEANING
+# ---------------------------------------------------------
+
+def rename_columns(df):
+    """Convert long Google Form headings to short names."""
 
     rename_map = {}
 
     for column in df.columns:
+
         column_name = str(column).strip()
 
         if column_name.lower() == "timestamp":
             rename_map[column] = "timestamp"
             continue
 
-        question_match = re.match(r"^(\d+)\.", column_name)
+        question_match = re.match(
+            r"^(\d+)\.",
+            column_name
+        )
 
         if question_match:
-            question_number = int(question_match.group(1))
+
+            question_number = int(
+                question_match.group(1)
+            )
 
             rename_map[column] = QUESTION_NAMES.get(
                 question_number,
-                f"question_{question_number}",
+                f"question_{question_number}"
             )
+
         else:
+
             safe_name = re.sub(
                 r"[^a-z0-9]+",
                 "_",
-                column_name.lower(),
+                column_name.lower()
             ).strip("_")
 
             rename_map[column] = safe_name
 
-    return df.rename(columns=rename_map).copy()
+    return df.rename(
+        columns=rename_map
+    ).copy()
 
 
-def clean_text_values(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove unnecessary spaces from text values."""
+# ---------------------------------------------------------
+# TEXT CLEANING
+# ---------------------------------------------------------
+
+def clean_text_values(df):
+    """Clean spaces and common encoding problems."""
 
     cleaned_df = df.copy()
 
     for column in cleaned_df.select_dtypes(
         include=["object", "string"]
     ).columns:
-        cleaned_df[column] = cleaned_df[column].apply(
-            lambda value: value.strip()
-            if isinstance(value, str)
-            else value
+
+        cleaned_df[column] = (
+            cleaned_df[column]
+            .astype("string")
+            .str.strip()
+            .str.replace(
+                "â€“",
+                "–",
+                regex=False
+            )
+            .str.replace(
+                "â€”",
+                "—",
+                regex=False
+            )
         )
 
     return cleaned_df
 
 
+# ---------------------------------------------------------
+# TARGET ENCODING
+# ---------------------------------------------------------
+
 def encode_target(value):
-    """Convert Low, Average and High into 0, 1 and 2."""
+    """Encode Low, Average and High as 0, 1 and 2."""
 
     if pd.isna(value):
         return pd.NA
@@ -138,28 +229,43 @@ def encode_target(value):
     return pd.NA
 
 
+# ---------------------------------------------------------
+# Q13 CONSISTENCY CHECK
+# ---------------------------------------------------------
+
 def expected_class_from_ca(value):
-    """Find the expected class using Question 13."""
+    """
+    Convert CA-mark category to a comparable class.
+
+    Q13 is used ONLY as a quality check.
+    It is not used as a model predictor and does not replace
+    the student's Q22 target response.
+    """
 
     if pd.isna(value):
         return None
 
-    text = str(value).strip().lower().replace("–", "-")
+    text = (
+        str(value)
+        .strip()
+        .lower()
+        .replace("–", "-")
+    )
 
-    if text == "below 40":
+    if "below 40" in text:
         return 0
 
-    if text in {"40-54", "55-69"}:
+    if "40-54" in text or "55-69" in text:
         return 1
 
-    if text == "70 and above":
+    if "70" in text and "above" in text:
         return 2
 
     return None
 
 
-def check_q13_q22_consistency(df: pd.DataFrame) -> dict:
-    """Compare Question 13 and Question 22."""
+def check_q13_q22_consistency(df):
+    """Compare Q13 with Q22 without changing Q22."""
 
     result = {
         "consistent": 0,
@@ -167,7 +273,11 @@ def check_q13_q22_consistency(df: pd.DataFrame) -> dict:
         "not_sure": 0,
     }
 
+    if "ca_marks_range" not in df.columns:
+        return result
+
     for _, row in df.iterrows():
+
         expected = expected_class_from_ca(
             row["ca_marks_range"]
         )
@@ -188,31 +298,51 @@ def check_q13_q22_consistency(df: pd.DataFrame) -> dict:
     return result
 
 
-def main() -> None:
+# ---------------------------------------------------------
+# MAIN PREPROCESSING
+# ---------------------------------------------------------
 
-    if not RAW_FILE.exists():
-        print("CSV file not found.")
-        print(f"Please add: {RAW_FILE}")
+def main():
+
+    raw_file = find_raw_file()
+
+    if raw_file is None:
+
+        print("No survey dataset found.")
+        print("Place the private .xlsx or .csv file inside:")
+        print("data/raw/")
+
         return
 
     try:
-        # Load the original survey dataset
-        df = pd.read_csv(RAW_FILE)
 
-        # Rename columns and clean text
+        print("Loading:", raw_file)
+
+        # Preserve original imported dataframe
+        df_raw = load_dataset(raw_file)
+
+        # Create working copy
+        df = df_raw.copy()
+
         df = rename_columns(df)
         df = clean_text_values(df)
 
         raw_rows = len(df)
         raw_columns = len(df.columns)
-        raw_missing = int(df.isna().sum().sum())
 
-        print("\nBefore cleaning")
+        raw_missing = int(
+            df.isna().sum().sum()
+        )
+
+        print("\nBefore screening")
         print("Rows:", raw_rows)
         print("Columns:", raw_columns)
         print("Missing values:", raw_missing)
 
-        # Check duplicates while ignoring timestamp
+        # -------------------------------------------------
+        # EXACT DUPLICATE CHECK
+        # -------------------------------------------------
+
         duplicate_columns = [
             column
             for column in df.columns
@@ -221,7 +351,7 @@ def main() -> None:
 
         duplicate_mask = df.duplicated(
             subset=duplicate_columns,
-            keep="first",
+            keep="first"
         )
 
         duplicate_count = int(
@@ -232,17 +362,25 @@ def main() -> None:
             ~duplicate_mask
         ].copy()
 
-        # Check Q13 and Q22 consistency
-        consistency = check_q13_q22_consistency(df)
+        # -------------------------------------------------
+        # Q13-Q22 QUALITY CHECK
+        # -------------------------------------------------
 
-        # Apply consent and eligibility rules
+        consistency = (
+            check_q13_q22_consistency(df)
+        )
+
+        # -------------------------------------------------
+        # ELIGIBILITY SCREENING
+        # -------------------------------------------------
+
         consent_mask = (
             df["consent"]
             .fillna("")
             .astype(str)
             .str.contains(
                 "agree",
-                case=False,
+                case=False
             )
         )
 
@@ -261,7 +399,7 @@ def main() -> None:
             .astype(str)
             .str.contains(
                 "private",
-                case=False,
+                case=False
             )
         )
 
@@ -277,14 +415,24 @@ def main() -> None:
             private_mask.sum()
         )
 
-        # Keep only eligible private-campus students
-        df = df.loc[
+        basic_eligibility_mask = (
             consent_mask
             & studying_mask
             & private_mask
+        )
+
+        basic_eligible_count = int(
+            basic_eligibility_mask.sum()
+        )
+
+        df = df.loc[
+            basic_eligibility_mask
         ].copy()
 
-        # Encode Question 22 target
+        # -------------------------------------------------
+        # TARGET
+        # -------------------------------------------------
+
         df[TARGET] = df[TARGET].apply(
             encode_target
         )
@@ -293,14 +441,19 @@ def main() -> None:
             df[TARGET].isna().sum()
         )
 
-        # Remove records with missing or invalid targets
         df = df.dropna(
             subset=[TARGET]
         ).copy()
 
-        df[TARGET] = df[TARGET].astype(int)
+        df[TARGET] = (
+            df[TARGET]
+            .astype(int)
+        )
 
-        # Check that all approved predictor columns exist
+        # -------------------------------------------------
+        # CHECK REQUIRED VARIABLES
+        # -------------------------------------------------
+
         missing_columns = [
             column
             for column in PREDICTORS + [TARGET]
@@ -308,27 +461,46 @@ def main() -> None:
         ]
 
         if missing_columns:
+
             raise ValueError(
                 "Missing required columns: "
                 + ", ".join(missing_columns)
             )
 
-        # Keep only the approved predictors and target
+        # -------------------------------------------------
+        # FINAL MODELLING DATASET
+        # -------------------------------------------------
+
         cleaned_df = df[
             PREDICTORS + [TARGET]
         ].copy()
 
-        # Create processed-data folder
-        OUTPUT_FILE.parent.mkdir(
-            parents=True,
-            exist_ok=True,
+        final_eligible_count = len(
+            cleaned_df
         )
 
-        # Save cleaned dataset
+        excluded_count = (
+            raw_rows
+            - final_eligible_count
+        )
+
+        # -------------------------------------------------
+        # SAVE PRIVATE PROCESSED DATA
+        # -------------------------------------------------
+
+        PROCESSED_FOLDER.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
         cleaned_df.to_csv(
             OUTPUT_FILE,
-            index=False,
+            index=False
         )
+
+        # -------------------------------------------------
+        # TARGET DISTRIBUTION
+        # -------------------------------------------------
 
         target_distribution = (
             cleaned_df[TARGET]
@@ -336,80 +508,123 @@ def main() -> None:
             .sort_index()
         )
 
-        # Create preprocessing report
+        # -------------------------------------------------
+        # REPORT
+        # -------------------------------------------------
+
         report_lines = [
-            "PREPROCESSING REPORT",
-            "=" * 40,
+
+            "FINAL PREPROCESSING REPORT",
+            "=" * 50,
             "",
+
             f"Raw responses: {raw_rows}",
             f"Raw columns: {raw_columns}",
             f"Raw missing values: {raw_missing}",
-            f"Exact duplicate responses: {duplicate_count}",
+            f"Exact duplicate responses detected: {duplicate_count}",
+
             "",
-            f"Consent provided: {consent_count}",
+
+            "SCREENING COUNTS",
+            "-" * 50,
+
+            f"Consent eligible: {consent_count}",
             f"Currently studying - Yes: {studying_count}",
             f"Private institution: {private_count}",
-            f"Final eligible records: {len(cleaned_df)}",
-            f"Invalid target records removed: {invalid_target_count}",
+            f"Combined basic eligibility: {basic_eligible_count}",
+            f"Invalid target after eligibility screening: {invalid_target_count}",
+            f"Final eligible records: {final_eligible_count}",
+            f"Total excluded records: {excluded_count}",
+
             "",
-            "Q13 and Q22 consistency:",
+
+            (
+                "Note: individual screening counts may overlap "
+                "and should not be subtracted sequentially."
+            ),
+
+            "",
+
+            "Q13 AND Q22 CONSISTENCY CHECK",
+            "-" * 50,
+
             f"Consistent: {consistency['consistent']}",
             f"Inconsistent: {consistency['inconsistent']}",
-            f"Not sure or uncheckable: {consistency['not_sure']}",
+            f"Not sure/uncheckable: {consistency['not_sure']}",
+
             "",
-            "Final target distribution:",
+
+            (
+                "Q13 was used only as a consistency check. "
+                "It was not included as a predictor and was "
+                "not used to overwrite the Q22 target."
+            ),
+
+            "",
+
+            "FINAL TARGET DISTRIBUTION",
+            "-" * 50,
+
             "0 = Low",
             "1 = Average",
             "2 = High",
+
             target_distribution.to_string(),
+
             "",
-            f"Final columns: {len(cleaned_df.columns)}",
+
+            f"Number of predictors: {len(PREDICTORS)}",
+
             (
                 "Remaining missing predictor values: "
                 f"{int(cleaned_df[PREDICTORS].isna().sum().sum())}"
             ),
+
             "",
+
             (
-                "Encoding, imputation and scaling will be "
-                "performed inside the training pipeline."
+                "Imputation, encoding and model-specific scaling "
+                "are performed inside the machine-learning pipelines."
             ),
+
         ]
 
         REPORT_FILE.write_text(
             "\n".join(report_lines),
-            encoding="utf-8",
+            encoding="utf-8"
         )
 
-        print("\nAfter preprocessing")
-        print("Eligible modelling rows:", len(cleaned_df))
-        print("Predictor columns:", len(PREDICTORS))
-        print("Target column:", TARGET)
+        # -------------------------------------------------
+        # FINAL OUTPUT
+        # -------------------------------------------------
 
+        print("\nPreprocessing completed.")
         print(
-            "Remaining missing predictor values:",
-            int(
-                cleaned_df[PREDICTORS]
-                .isna()
-                .sum()
-                .sum()
-            ),
+            "Final eligible records:",
+            final_eligible_count
         )
 
         print(
-            "\nTarget distribution "
-            "(0=Low, 1=Average, 2=High):"
-        )
-
-        print(target_distribution)
-
-        print(
-            "\nSaved cleaned dataset to:",
-            OUTPUT_FILE,
+            "Number of predictors:",
+            len(PREDICTORS)
         )
 
         print(
-            "Saved preprocessing report to:",
-            REPORT_FILE,
+            "\nTarget distribution:"
+        )
+
+        print(
+            target_distribution
+        )
+
+        print(
+            "\nPrivate cleaned dataset saved to:",
+            OUTPUT_FILE
+        )
+
+        print(
+            "Preprocessing report saved to:",
+            REPORT_FILE
         )
 
     except (
