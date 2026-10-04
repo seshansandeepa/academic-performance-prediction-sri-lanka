@@ -1,9 +1,9 @@
-# Processed data
+# Processed Data
 
-This folder is for the cleaned dataset after preprocessing.
+This folder is reserved for processed participant-level datasets generated during the research workflow.
 
-The cleaned dataset should not contain:
-- timestamp
-- consent answer
-- screening fields not used for prediction
-- any personal information
+Processed participant-level data are not published in this repository in order to protect participant privacy.
+
+The public repository contains only aggregated research outputs, figures, tables, code, and documentation.
+
+Any processed dataset used for modelling is kept in private research storage and is not committed to GitHub.
