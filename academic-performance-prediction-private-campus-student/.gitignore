@@ -1,9 +1,31 @@
+# Private raw survey data
 data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.xls
+
+# Private processed participant-level data
 data/processed/*.csv
+data/processed/*.xlsx
+data/processed/*.xls
 data/processed/*.txt
+
+# Do not publish participant-level generated files placed directly in results
 results/*.csv
 results/*.json
 results/*.png
+results/*.xlsx
+
+# Python temporary files
 __pycache__/
 *.pyc
+
+# Virtual environment
 .venv/
+venv/
+
+# Jupyter / Colab temporary files
+.ipynb_checkpoints/
+
+# Operating-system temporary files
+.DS_Store
+Thumbs.db
