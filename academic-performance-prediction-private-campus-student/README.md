@@ -1,207 +1,417 @@
-# Academic Performance Prediction Among Private Campus Students
+# Academic Performance Prediction Among Sri Lankan Private Campus Students
 
-This repository contains the implementation of the research project titled:
+## A Comparative Study of Academic Performance Prediction Among Sri Lankan Private Campus Students Using Survey-Based Factors
 
-**“A Comparative Study of Academic Performance Prediction Among Sri Lankan Private Campus Students Using Survey-Based Factors.”**
+This repository contains the final data-analysis workflow, machine-learning implementation, evaluation results, figures, and supporting documentation developed for our undergraduate research study at the Faculty of Information Technology, Horizon Campus, Sri Lanka.
 
-This project was prepared for the **IT41043 Milestone 2 research assignment**.
-
----
-
-## 1. Project Overview
-
-Academic performance can be affected by several academic and behavioural factors, including attendance, study habits, assignment-submission behaviour, motivation, sleep, stress and access to learning resources.
-
-This study uses survey-based data collected from undergraduate students to compare selected machine-learning models for predicting students’ academic performance levels.
-
-The three predicted performance classes are:
+The study examines whether academic, behavioural, and study-related information collected directly from students can support the classification of their current academic performance into three categories:
 
 - Low
 - Average
 - High
 
-This is a quantitative, non-experimental study. The project examines predictive relationships and does not claim that the selected factors directly cause academic performance.
+Three machine-learning algorithms were compared:
+
+- Logistic Regression
+- Decision Tree
+- Random Forest
+
+The study focuses on predictive relationships found in the collected survey data. The findings should not be interpreted as evidence that any individual factor directly causes academic performance.
 
 ---
 
-## 2. Research Aim
+# 1. Project Overview
+
+Academic performance can be influenced by many factors, including attendance, study habits, motivation, time management, sleep, stress, access to learning resources, and personal circumstances.
+
+Many academic-performance prediction studies use institutional information such as GPA, examination marks, attendance records, or learning-management-system data.
+
+This study uses a different practical approach by examining whether information collected directly from students through a questionnaire can also support academic-performance classification.
+
+The survey includes information related to:
+
+- Class attendance
+- Daily study hours
+- LMS usage
+- Assignment-submission behaviour
+- Participation in academic sessions
+- Sleep duration
+- Motivation
+- Time management
+- Internet quality
+- Part-time employment
+- Academic stress
+- Travel time
+- Access to study resources
+
+The research focuses on undergraduate students studying at private higher education institutions in Sri Lanka.
+
+---
+
+# 2. Research Aim
 
 The aim of this study is to compare selected machine-learning models for predicting the academic performance level of Sri Lankan private campus undergraduate students using survey-based academic and behavioural factors.
 
 ---
 
-## 3. Research Question
+# 3. Research Question
 
-To what extent can survey-based academic and behavioural factors support the prediction of Low, Average and High academic performance among Sri Lankan private campus undergraduate students?
-
----
-
-## 4. Research Objectives
-
-1. To collect survey-based academic and behavioural data from private campus undergraduate students in Sri Lanka.
-2. To preprocess the collected data and prepare it for machine-learning model development.
-3. To develop Logistic Regression, Decision Tree and Random Forest classification models.
-4. To compare the models using suitable classification metrics and statistical testing.
+**To what extent can survey-based academic and behavioural factors support the prediction of Low, Average, and High academic performance among Sri Lankan private campus undergraduate students?**
 
 ---
 
-## 5. Dataset
+# 4. Research Objectives
 
-Primary data were collected through an anonymous Google Form questionnaire.
+The study was conducted using the following objectives:
+
+1. To collect survey-based academic and behavioural information from undergraduate students studying at private higher education institutions in Sri Lanka.
+
+2. To preprocess and prepare the collected data for machine-learning analysis.
+
+3. To develop Logistic Regression, Decision Tree, and Random Forest classification models.
+
+4. To compare the performance of the three models using appropriate classification metrics.
+
+5. To examine class-wise predictive performance, with particular attention to the Low academic-performance group.
+
+6. To investigate which survey-based factors contribute most strongly to the model predictions.
+
+---
+
+# 5. Data Collection
+
+Primary data were collected using an anonymous Google Forms questionnaire.
+
+The data-collection period was:
+
+**28 June 2026 to 30 September 2026**
+
+The questionnaire was distributed among undergraduate students studying at private higher education institutions in Sri Lanka.
+
+The final downloaded survey dataset contained:
+
+**435 responses**
+
+The questionnaire included:
+
+- Consent and eligibility questions
+- Academic background information
+- Study-related behaviour
+- Academic and personal conditions
+- Current academic-performance category
+- Academic-support requirement
+
+The raw participant-level dataset is not included in this public repository.
+
+---
+
+# 6. Participant Screening
+
+Participant screening was completed before model development.
 
 The original dataset contained:
 
-- 126 survey responses
-- 23 questionnaire items
-- 1 timestamp column
-- 24 columns in total
-- 1 missing value
-- 0 exact duplicate responses
+**435 responses**
 
-After applying consent and eligibility criteria, **97 records** remained for preliminary model development.
+After applying the eligibility requirements, the final modelling dataset contained:
 
-### Current eligible class distribution
+**396 eligible participants**
 
-| Academic Performance Level | Number of Records | Percentage |
+Summary:
+
+| Item | Count |
+|---|---:|
+| Raw survey responses | 435 |
+| Final eligible participants | 396 |
+| Excluded responses | 39 |
+
+Eligibility checking considered:
+
+- Informed consent
+- Current undergraduate status
+- Institution type
+- Valid academic-performance target
+- General data-quality requirements
+
+The screening conditions were applied together. Therefore, individual screening counts may overlap and should not be interpreted as independent sequential exclusions.
+
+---
+
+# 7. Final Academic-Performance Distribution
+
+The final eligible sample contained three academic-performance categories.
+
+| Academic Performance Level | Number of Students | Percentage |
 |---|---:|---:|
-| Low | 7 | 7.2% |
-| Average | 65 | 67.0% |
-| High | 25 | 25.8% |
-| **Total** | **97** | **100.0%** |
+| Low | 110 | 27.78% |
+| Average | 228 | 57.58% |
+| High | 58 | 14.65% |
+| **Total** | **396** | **100%** |
 
-The class distribution is imbalanced because the Average class contains more records than the Low and High classes.
+The Average category was the largest class, while the High category was the smallest.
 
-The raw and processed datasets are not publicly included in this repository because they contain participant-derived information.
-
----
-
-## 6. Eligibility Criteria
-
-A response is included in the model-development dataset when the participant:
-
-- Provided informed consent
-- Confirmed that they are currently studying
-- Confirmed that they study at a private higher-education institution
-- Provided a valid academic-performance target value
-
-Responses that did not meet these conditions were removed from the modelling dataset.
+Because the classes were not equally distributed, model performance was not evaluated using accuracy alone.
 
 ---
 
-## 7. Selected Predictor Variables
+# 8. Target Variable
 
-The study uses the following 16 academic and behavioural predictor variables:
+The target variable represents the student's current self-reported academic-performance level.
+
+The three categories were defined as:
+
+| Performance Level | Definition |
+|---|---|
+| Low | Below 40 marks |
+| Average | 40–69 marks |
+| High | 70 marks or above |
+
+For modelling, the classes were encoded as:
+
+```text
+Low     = 0
+Average = 1
+High    = 2
+```
+
+The models therefore classify students' **current self-reported academic-performance category**.
+
+The study does not claim to predict future examination results.
+
+---
+
+# 9. Predictor Variables
+
+A total of **16 predictor variables** were included in the machine-learning models.
+
+They were:
 
 1. Year of study
-2. Degree area
+2. Degree area / study field
 3. Study mode
-4. Attendance
-5. Daily study hours
-6. LMS usage
+4. Average class attendance
+5. Average study hours per day
+6. LMS / online-learning-platform usage
 7. Assignment-submission habits
-8. Class participation
-9. Sleep hours
+8. Participation in lectures, tutorials, and practical sessions
+9. Average sleep hours
 10. Motivation level
 11. Time-management ability
-12. Internet quality
-13. Part-time work
-14. Academic stress
-15. Travel time
-16. Availability of study resources
+12. Internet-access quality
+13. Part-time employment
+14. Academic-stress level
+15. Travel time to campus
+16. Access to study resources
 
-The following fields are excluded from model training:
+---
 
-- Timestamp
+# 10. Variables Excluded from Model Training
+
+Several survey fields were intentionally excluded from the predictor set.
+
+These included:
+
 - Consent information
 - Eligibility-screening questions
 - Gender
-- Current CA marks range
+- Current CA / coursework marks
 - Academic-support requirement
-- Other administrative fields
+- Academic-performance target
 
-The CA marks range is excluded because it is closely connected to the target variable and could cause target leakage.
+Gender was used only for descriptive analysis and was not used as a machine-learning predictor.
 
----
+The current CA / coursework marks variable was also excluded.
 
-## 8. Target Variable
-
-The target variable is:
-
-```text
-academic_performance_level
-```
-
-The target classes are encoded as:
-
-| Encoded Value | Academic Performance Level |
-|---:|---|
-| 0 | Low |
-| 1 | Average |
-| 2 | High |
+CA marks are closely related to the academic-performance target. Including them could introduce **target leakage** and make the model appear stronger than it would be when using independent survey-based factors.
 
 ---
 
-## 9. Machine-Learning Models
+# 11. Data Preparation
 
-The following supervised classification models are implemented and compared:
+The original imported dataset was preserved during the analysis, and a separate working copy was used for processing.
 
-### 9.1 Logistic Regression
+The preparation process included:
 
-Logistic Regression is used as the baseline model. It provides a simple and interpretable comparison point for the other models.
-
-### 9.2 Decision Tree
-
-Decision Tree can learn non-linear decision rules and provides an understandable tree-based model.
-
-### 9.3 Random Forest
-
-Random Forest combines multiple decision trees and can provide more stable predictions than a single Decision Tree.
-
----
-
-## 10. Data-Preprocessing Workflow
-
-The preprocessing process includes:
-
-1. Loading the original Google Form CSV file
-2. Cleaning and shortening column names
-3. Removing exact duplicate responses
+1. Loading the survey dataset
+2. Checking the number of rows and columns
+3. Reviewing data types
 4. Checking missing values
-5. Applying consent and eligibility criteria
-6. Removing excluded variables
-7. Separating predictors and the target variable
-8. Encoding nominal variables
-9. Encoding ordinal variables
-10. Imputing missing predictor values
-11. Scaling features only for Logistic Regression
-12. Preparing the data for model training
+5. Reviewing possible duplicate records
+6. Examining response categories
+7. Applying eligibility criteria
+8. Selecting the approved predictor variables
+9. Separating predictors and target
+10. Standardizing category labels
+11. Preparing variables for machine-learning pipelines
 
-Encoding, imputation and scaling are performed inside machine-learning pipelines to reduce data leakage.
+The original raw dataset was not overwritten.
 
 ---
 
-## 11. Validation Strategy
+# 12. Data Preprocessing
 
-The models are evaluated using:
+Different variable types required different preprocessing methods.
 
-- Stratified 5-Fold Cross-Validation
-- Shuffling with a fixed random state
-- Small 3-Fold GridSearchCV for hyperparameter tuning
+## 12.1 Nominal Variables
+
+Nominal variables were handled using one-hot encoding.
+
+Examples include:
+
+- Degree area
+- Study mode
+
+## 12.2 Ordinal Variables
+
+Ordered survey categories were mapped according to their natural order.
+
+Examples include:
+
+- Attendance
+- Study hours
+- LMS usage
+- Assignment-submission behaviour
+- Academic participation
+- Sleep
+- Motivation
+- Time management
+- Internet quality
+- Academic stress
+- Travel time
+- Study-resource access
+
+## 12.3 Binary Variable
+
+Part-time employment was treated as a binary predictor.
+
+## 12.4 Missing Values
+
+Missing predictor values were handled using most-frequent-value imputation.
+
+Imputation was performed inside the machine-learning pipeline.
+
+## 12.5 Feature Scaling
+
+StandardScaler was used for Logistic Regression.
+
+Decision Tree and Random Forest did not require scaling.
+
+All learned preprocessing operations were kept inside scikit-learn pipelines to reduce information leakage between training and validation data.
+
+---
+
+# 13. Machine-Learning Models
+
+Three supervised classification algorithms were developed and compared.
+
+## 13.1 Logistic Regression
+
+Logistic Regression was used as a simple and interpretable baseline model.
+
+The model used:
+
+- L2 regularization
 - Balanced class weights
+- Maximum iterations = 1000
 
-Stratified cross-validation is used to maintain approximately similar class proportions in each fold.
-
-The random state is set to:
+The following values of `C` were tested:
 
 ```text
-42
+0.1
+1
+10
+```
+
+## 13.2 Decision Tree
+
+Decision Tree was included because it can model non-linear relationships while still providing an interpretable tree structure.
+
+The tuning grid included:
+
+```text
+max_depth:
+3
+5
+8
+None
+```
+
+and:
+
+```text
+min_samples_leaf:
+1
+3
+5
+```
+
+Balanced class weights were used.
+
+## 13.3 Random Forest
+
+Random Forest combines multiple decision trees and can capture more complex relationships between the predictor variables and the target.
+
+The tuning grid included:
+
+```text
+n_estimators:
+100
+200
+```
+
+```text
+max_depth:
+5
+10
+None
+```
+
+```text
+min_samples_leaf:
+1
+2
+4
+```
+
+Balanced class weights were also used.
+
+---
+
+# 14. Random Seed
+
+A fixed random state was used to improve reproducibility.
+
+```text
+random_state = 42
 ```
 
 ---
 
-## 12. Evaluation Metrics
+# 15. Validation Strategy
 
-The models are evaluated using:
+The final model comparison used **nested cross-validation**.
+
+The outer evaluation used:
+
+**Stratified 5-Fold Cross-Validation**
+
+The inner hyperparameter search used:
+
+**Stratified 3-Fold GridSearchCV**
+
+The hyperparameter search optimized:
+
+**Macro F1-score**
+
+Nested cross-validation was used so that hyperparameter selection took place separately from the outer model-performance evaluation.
+
+The three models were compared using the same outer folds.
+
+---
+
+# 16. Evaluation Metrics
+
+The following metrics were used:
 
 - Accuracy
 - Macro Precision
@@ -209,115 +419,290 @@ The models are evaluated using:
 - Macro F1-score
 - Class-wise Recall
 - Confusion Matrix
-- Mean and standard deviation across five folds
+- Mean performance across folds
+- Standard deviation across folds
 
-### Primary evaluation metric
+## Primary Evaluation Metric
 
-**Macro F1-score** is used as the main model-comparison metric because the target classes are imbalanced.
+The main evaluation metric was:
 
-Macro F1 gives equal importance to the Low, Average and High classes.
+**Macro F1-score**
 
----
+Macro F1 gives equal importance to the Low, Average, and High classes.
 
-## 13. Statistical Comparison
-
-The Macro F1-scores obtained from the cross-validation folds are statistically compared using:
-
-1. Friedman test
-2. Wilcoxon signed-rank tests, only when the Friedman test is significant
-3. Holm correction for multiple pairwise comparisons
-
-The statistical significance level is:
-
-```text
-α = 0.05
-```
+This was useful because the target classes were imbalanced.
 
 ---
 
-## 14. Preliminary Results
+# 17. Baseline Model Results
 
-The following results are based on the current **97 eligible records**. These are preliminary results because survey-data collection may continue.
+Baseline models were evaluated before final hyperparameter tuning.
 
-### Cross-validation results
+| Model | Accuracy Mean | Macro Precision Mean | Macro Recall Mean | Macro F1 Mean |
+|---|---:|---:|---:|---:|
+| Logistic Regression | 0.6087 | 0.5774 | 0.6357 | 0.5856 |
+| Decision Tree | 0.5885 | 0.5105 | 0.5103 | 0.5080 |
+| Random Forest | **0.6668** | **0.6493** | 0.5522 | 0.5732 |
 
-| Model | Accuracy Mean ± SD | Macro F1 Mean ± SD |
-|---|---:|---:|
-| Logistic Regression | 0.6605 ± 0.0743 | 0.6292 ± 0.1535 |
-| Decision Tree | 0.7632 ± 0.1137 | 0.7191 ± 0.1867 |
-| Random Forest | **0.7842 ± 0.0739** | **0.7429 ± 0.1695** |
+These results provided a reference point for evaluating the effect of hyperparameter tuning.
 
-Random Forest achieved the highest mean Accuracy and mean Macro F1-score in the preliminary cross-validation results.
+---
 
-### Out-of-fold evaluation results
+# 18. Baseline vs Tuned Models
+
+Hyperparameter tuning improved Macro F1 for all three algorithms.
+
+| Model | Baseline Macro F1 | Tuned Macro F1 | Improvement |
+|---|---:|---:|---:|
+| Logistic Regression | 0.5856 | 0.5962 | +0.0106 |
+| Decision Tree | 0.5080 | 0.5160 | +0.0080 |
+| Random Forest | 0.5732 | 0.6145 | +0.0413 |
+
+The largest improvement was observed for Random Forest.
+
+---
+
+# 19. Final Model Performance
+
+The final nested cross-validation results were:
 
 | Model | Accuracy | Macro Precision | Macro Recall | Macro F1 |
 |---|---:|---:|---:|---:|
-| Logistic Regression | 0.6598 | 0.6471 | 0.6637 | 0.6500 |
-| Decision Tree | 0.7629 | 0.7671 | **0.7725** | 0.7534 |
-| Random Forest | **0.7835** | **0.8201** | 0.7581 | **0.7773** |
+| Logistic Regression | 0.6188 | 0.5877 | **0.6513** | 0.5962 |
+| Decision Tree | 0.5429 | 0.5134 | 0.5628 | 0.5160 |
+| Random Forest | **0.6668** | **0.6267** | 0.6190 | **0.6145** |
 
-### Class-wise recall
+Random Forest achieved the highest mean Accuracy, Macro Precision, and Macro F1.
 
-| Model | Low | Average | High |
+However, Logistic Regression achieved the highest Macro Recall.
+
+This means that no single model was strongest according to every evaluation measure.
+
+---
+
+# 20. Model Stability
+
+Variation in Macro F1 across the five outer folds was also examined.
+
+| Model | Mean Macro F1 | SD | Minimum | Maximum |
+|---|---:|---:|---:|---:|
+| Logistic Regression | 0.5962 | **0.0466** | 0.5441 | 0.6601 |
+| Decision Tree | 0.5160 | 0.0539 | 0.4538 | 0.5664 |
+| Random Forest | **0.6145** | 0.0739 | 0.5159 | 0.7099 |
+
+Logistic Regression showed the smallest variation across the outer folds.
+
+Random Forest achieved the highest average Macro F1 but showed greater fold-to-fold variation.
+
+---
+
+# 21. Class-Wise Recall
+
+Class-wise recall was examined because overall metrics can hide differences between target classes.
+
+| Model | Low Recall | Average Recall | High Recall |
 |---|---:|---:|---:|
-| Logistic Regression | 0.7143 | 0.6769 | 0.6000 |
-| Decision Tree | 0.7143 | 0.7231 | **0.8800** |
-| Random Forest | 0.7143 | **0.8000** | 0.7600 |
+| Logistic Regression | **0.7273** | 0.5524 | **0.6742** |
+| Decision Tree | 0.6364 | 0.4959 | 0.5561 |
+| Random Forest | 0.5727 | **0.7448** | 0.5394 |
 
-The Low class contains only seven records. Therefore, the class-wise results should be interpreted carefully.
+Logistic Regression achieved the strongest recall for the Low academic-performance group.
 
-### Statistical result
+Random Forest achieved the strongest recall for the Average group.
 
-The Friedman test produced:
+This result shows why model selection should not be based only on overall accuracy.
+
+---
+
+# 22. Interpretation of Model Performance
+
+The study did not identify one model that was best for every purpose.
+
+### Random Forest performed best for:
+
+- Accuracy
+- Macro Precision
+- Macro F1
+
+### Logistic Regression performed best for:
+
+- Macro Recall
+- Low-class recall
+- High-class recall
+- Fold-to-fold stability
+
+### Decision Tree
+
+Decision Tree produced lower overall predictive performance compared with Logistic Regression and Random Forest.
+
+Therefore, the most suitable model depends on the practical objective.
+
+If the main goal is stronger overall multiclass classification, Random Forest is the stronger model in this dataset.
+
+If the main goal is identifying a larger proportion of students in the Low academic-performance category, Logistic Regression may be more useful.
+
+---
+
+# 23. Statistical Comparison
+
+Fold-level Macro F1 scores were compared using the Friedman test.
+
+The result was:
 
 ```text
-Friedman statistic = 5.20
-p-value = 0.0743
+Friedman statistic = 4.80
+p-value = 0.0907
 α = 0.05
 ```
 
-Because the p-value is greater than 0.05, the test did not identify a statistically significant difference among the three models.
+Because:
 
-Therefore, pairwise Wilcoxon signed-rank tests were not performed.
+```text
+p > 0.05
+```
+
+the analysis did not find a statistically significant difference among the three models at the 5% significance level.
+
+According to the predefined analysis plan, pairwise Wilcoxon signed-rank tests were therefore not performed.
+
+This statistical result should be interpreted carefully because it is based on five outer cross-validation folds from one dataset.
 
 ---
 
-## 15. System Architecture
+# 24. Model Interpretation
 
-The proposed system architecture diagram is available at:
+Several methods were used to understand the trained models.
 
-```text
-diagrams/system_architecture_milestone2.png
-```
+These included:
 
-The main system workflow is:
+- Logistic Regression coefficients
+- Decision Tree visualization
+- Random Forest feature importance
+- Permutation importance
 
-```text
-Google Form
-    ↓
-Raw Survey Dataset
-    ↓
-Data-Quality Checks
-    ↓
-Consent and Eligibility Filtering
-    ↓
-Data Preprocessing
-    ↓
-Stratified 5-Fold Cross-Validation
-    ↓
-Logistic Regression, Decision Tree and Random Forest
-    ↓
-Model Evaluation
-    ↓
-Statistical Comparison
-    ↓
-Best Model and Interpretation
-```
+These approaches were used to better understand how different survey-based variables contributed to model predictions.
+
+The interpretation is predictive rather than causal.
 
 ---
 
-## 16. Repository Structure
+# 25. Important Predictive Factors
+
+Permutation importance identified the following variables among the strongest predictive factors in the fitted Random Forest model.
+
+| Rank | Predictor | Mean Importance |
+|---:|---|---:|
+| 1 | Access to study resources | 0.0787 |
+| 2 | Travel time | 0.0494 |
+| 3 | Degree area | 0.0490 |
+| 4 | Part-time employment | 0.0446 |
+| 5 | LMS usage | 0.0390 |
+| 6 | Study hours | 0.0221 |
+| 7 | Attendance | 0.0216 |
+| 8 | Year of study | 0.0189 |
+| 9 | Motivation | 0.0147 |
+| 10 | Academic stress | 0.0147 |
+
+These values indicate predictive importance within the fitted model.
+
+They do not prove that these variables cause changes in academic performance.
+
+---
+
+# 26. Research Figures
+
+The final research figures are stored in:
+
+```text
+results/figures/
+```
+
+The repository contains the following figures:
+
+```text
+baseline_model_comparison.png
+baseline_vs_tuned.png
+class_wise_recall.png
+decision_tree_structure.png
+permutation_importance.png
+random_forest_feature_importance.png
+target_distribution.png
+tuned_decision_tree_confusion_matrix.png
+tuned_logistic_regression_confusion_matrix.png
+tuned_random_forest_confusion_matrix.png
+```
+
+These figures provide visual summaries of the model-development and evaluation process.
+
+---
+
+# 27. Result Tables
+
+The aggregated research tables are stored in:
+
+```text
+results/tables/
+```
+
+The final result files include:
+
+```text
+accuracy_95CI.csv
+baseline_model_results.csv
+baseline_vs_tuned.csv
+feature_importance_comparison.csv
+final_class_recall_table.csv
+final_model_results.csv
+final_model_stability.csv
+final_participant_screening_flow.csv
+final_sample_summary.csv
+final_target_distribution.csv
+final_top_predictive_factors.csv
+logistic_regression_coefficients.csv
+macro_f1_95CI.csv
+nested_cv_fold_results.csv
+permutation_importance.csv
+statistical_summary.csv
+tuned_overfitting_check.csv
+```
+
+These files contain aggregated analytical results and do not contain raw participant questionnaire responses.
+
+---
+
+# 28. Final Google Colab Notebook
+
+The final analysis notebook is stored in:
+
+```text
+notebooks/Academic_Performance_Final_Research.ipynb
+```
+
+The notebook contains the main analytical workflow used for the study.
+
+This includes:
+
+- Dataset inspection
+- Data-quality checking
+- Eligibility screening
+- Predictor selection
+- Data preprocessing
+- Baseline model development
+- Hyperparameter tuning
+- Nested cross-validation
+- Performance evaluation
+- Class-wise recall
+- Confusion matrices
+- Statistical testing
+- Model interpretation
+- Feature importance
+- Final result generation
+
+The public version of the notebook is shared without saved raw participant-level outputs.
+
+---
+
+# 29. Repository Structure
 
 ```text
 academic-performance-prediction-private-campus-student/
@@ -331,13 +716,23 @@ academic-performance-prediction-private-campus-student/
 │       └── README.md
 │
 ├── diagrams/
-│   ├── README.md
-│   └── system_architecture_milestone2.png
 │
 ├── docs/
 │
+├── notebooks/
+│   ├── README.md
+│   └── Academic_Performance_Final_Research.ipynb
+│
 ├── results/
-│   └── README.md
+│   ├── README.md
+│   │
+│   ├── figures/
+│   │   ├── README.md
+│   │   └── final research figures
+│   │
+│   └── tables/
+│       ├── README.md
+│       └── aggregated research tables
 │
 ├── src/
 │   ├── preprocessing.py
@@ -351,98 +746,107 @@ academic-performance-prediction-private-campus-student/
 
 ---
 
-## 17. Main Python Files
+# 30. Source Code
 
-### `src/preprocessing.py`
+The repository contains separate Python scripts supporting the project.
 
-This script:
+## `src/preprocessing.py`
 
-- Loads the raw survey data
-- Cleans column names
-- Checks missing values and duplicate responses
-- Applies consent and eligibility criteria
-- Selects the approved predictors
-- Encodes the target variable
-- Creates the cleaned modelling dataset
-- Generates a preprocessing report
+This script supports:
 
-### `src/train_models.py`
+- Loading the private survey dataset
+- Excel and CSV input
+- Column-name preparation
+- Data-quality checking
+- Eligibility screening
+- Predictor selection
+- Target preparation
+- Processed-data generation
 
-This script:
+## `src/train_models.py`
 
-- Loads the cleaned dataset
-- Creates preprocessing pipelines
-- Handles missing predictor values
-- Encodes nominal and ordinal variables
-- Scales Logistic Regression features
-- Trains the three selected models
-- Performs nested cross-validation
-- Performs small-grid hyperparameter tuning
-- Saves fold-level and summary results
+This script supports:
 
-### `src/evaluate_models.py`
+- Preprocessing pipelines
+- Nominal encoding
+- Ordinal encoding
+- Binary encoding
+- Logistic Regression
+- Decision Tree
+- Random Forest
+- Hyperparameter tuning
+- Nested cross-validation
+- Fold-level model evaluation
 
-This script:
+## `src/evaluate_models.py`
 
-- Generates out-of-fold predictions
-- Calculates overall evaluation metrics
-- Calculates class-wise recall
-- Generates confusion matrices
-- Runs the Friedman statistical test
-- Performs pairwise tests only when required
-- Saves evaluation and statistical results
+This script supports:
+
+- Nested out-of-fold evaluation
+- Accuracy
+- Macro Precision
+- Macro Recall
+- Macro F1
+- Class-wise recall
+- Confusion matrices
+- Friedman statistical testing
+- Conditional Wilcoxon testing
+- Holm adjustment
+
+Participant-level prediction files are not saved publicly.
 
 ---
 
-## 18. Required Technologies
+# 31. Technologies Used
 
-The project uses:
+The project was developed using:
 
 - Python
 - pandas
 - NumPy
 - scikit-learn
-- Matplotlib
 - SciPy
-- statsmodels
+- Matplotlib
+- openpyxl
+- Google Colab
 - Git
 - GitHub
 
 ---
 
-## 19. Installation Instructions
+# 32. Installation
 
-### Step 1: Clone the repository
+Clone the repository:
 
 ```bash
-git clone https://github.com/sandeepaseshan2-commits/academic-performance-prediction-sri-lanka.git
+git clone https://github.com/seshansandeepa/academic-performance-prediction-sri-lanka.git
 ```
 
-### Step 2: Open the project folder
+Open the project directory:
 
 ```bash
 cd academic-performance-prediction-sri-lanka/academic-performance-prediction-private-campus-student
 ```
 
-### Step 3: Create a virtual environment
+Create a Python virtual environment:
 
 ```bash
 python -m venv .venv
 ```
 
-### Step 4: Activate the environment on Windows
+Activate the environment on Windows:
 
 ```bash
 .venv\Scripts\activate
 ```
 
-### Step 5: Upgrade pip
+Upgrade pip:
 
 ```bash
 python -m pip install --upgrade pip
 ```
 
-### Step 6: Install the required libraries
+Install the required packages:
 
 ```bash
 pip install -r requirements.txt
@@ -450,35 +854,31 @@ pip install -r requirements.txt
 
 ---
 
-## 20. Running the Project
+# 33. Running the Project
 
-### Step 1: Add the private survey dataset
+Because the raw survey dataset is private, it is not included in this repository.
 
-Place the Google Form CSV file inside:
+To run the project with authorized data:
+
+1. Place the private `.xlsx` or `.csv` survey dataset inside:
 
 ```text
 data/raw/
 ```
 
-Rename the file as:
-
-```text
-raw_survey_responses.csv
-```
-
-### Step 2: Run preprocessing
+2. Run preprocessing:
 
 ```bash
 python src/preprocessing.py
 ```
 
-### Step 3: Train and compare the models
+3. Run the nested model-training workflow:
 
 ```bash
 python src/train_models.py
 ```
 
-### Step 4: Run the complete evaluation
+4. Run the final evaluation:
 
 ```bash
 python src/evaluate_models.py
@@ -486,120 +886,272 @@ python src/evaluate_models.py
 
 ---
 
-## 21. Generated Output Files
+# 34. Reproducibility
 
-The scripts generate files such as:
+The project was developed with reproducibility in mind.
+
+Important analytical settings are documented in the repository, including:
+
+- Predictor definitions
+- Target definition
+- Variable exclusions
+- Category mappings
+- Preprocessing methods
+- Model settings
+- Hyperparameter grids
+- Cross-validation strategy
+- Evaluation metrics
+- Statistical testing
+- Random seed
+
+The main random state used in the study was:
 
 ```text
-data/processed/cleaned_survey_data.csv
-data/processed/preprocessing_report.txt
-
-results/cross_validation_scores.csv
-results/model_summary.csv
-results/best_parameters.json
-results/evaluation_metrics.csv
-results/class_wise_recall.csv
-results/statistical_comparison.csv
-results/out_of_fold_predictions.csv
-results/confusion_matrix_logistic_regression.png
-results/confusion_matrix_decision_tree.png
-results/confusion_matrix_random_forest.png
+42
 ```
 
-These generated participant-derived files are protected through `.gitignore` and are not publicly uploaded.
+The final Google Colab notebook provides the main record of the analysis used to generate the reported results.
+
+Because the participant-level dataset is private, complete reproduction of the original analysis requires authorized access to the survey dataset or another dataset with the same questionnaire structure.
 
 ---
 
-## 22. Data Privacy and Ethical Handling
+# 35. Data Privacy
 
-Participation in the survey was voluntary and based on informed consent.
+Participant privacy was considered throughout the project.
 
-The questionnaire did not require unnecessary personally identifying information.
+The public repository does not contain:
 
-The public GitHub repository does not contain:
-
-- Raw participant responses
+- Raw Google Form responses
+- Raw Excel survey data
+- Raw CSV survey data
 - Cleaned participant-level datasets
-- Individual out-of-fold predictions
-- Private generated result files
+- Individual student records
+- Participant-level predictions
+- Personally identifying information
 
-The following file patterns are excluded through `.gitignore`:
+Only the following materials are made public:
 
-```text
-data/raw/*.csv
-data/processed/*.csv
-data/processed/*.txt
-results/*.csv
-results/*.json
-results/*.png
-__pycache__/
-*.pyc
-.venv/
-```
+- Analysis code
+- Research documentation
+- Aggregated result tables
+- Research figures
+- Model-evaluation outputs
+- Clean public Colab notebook
+
+This allows the analytical process to remain transparent without exposing individual survey responses.
 
 ---
 
-## 23. Current Project Status
+# 36. Data Availability
 
-The following components have been completed:
+The raw participant-level survey data are not publicly available because the responses were collected from students under privacy conditions.
 
-- GitHub repository structure
-- Dataset-quality checking
-- Consent and eligibility filtering
-- Predictor selection
-- Target encoding
-- Data-preprocessing pipeline
-- Logistic Regression implementation
-- Decision Tree implementation
-- Random Forest implementation
-- Stratified 5-Fold Cross-Validation
+Aggregated analytical results, figures, documentation, and analysis code are available through this repository.
+
+Any future sharing of participant-level data would need to follow appropriate institutional and ethical requirements.
+
+---
+
+# 37. Code Availability
+
+The Python analysis code and final Google Colab notebook are available in this repository.
+
+The available code covers:
+
+- Eligibility screening
+- Data preprocessing
+- Model development
 - Hyperparameter tuning
+- Nested cross-validation
 - Model evaluation
-- Class-wise recall calculation
+- Statistical testing
+- Feature importance
+- Result generation
+
+---
+
+# 38. Study Limitations
+
+Several limitations should be considered when interpreting the findings.
+
+First, the survey used voluntary participation and convenience-based recruitment. The final sample therefore should not automatically be considered representative of every private-campus undergraduate student in Sri Lanka.
+
+Second, the predictor variables and academic-performance category were self-reported.
+
+Third, the three target classes were not equally distributed.
+
+Fourth, the study used nested internal cross-validation but did not use an independent external validation dataset.
+
+Fifth, the study is cross-sectional. The predictors and academic-performance category were collected during the same general period.
+
+Therefore, the results represent predictive relationships within the collected dataset and should not be interpreted as causal evidence.
+
+The models should also not be used by themselves to make high-stakes academic decisions about individual students.
+
+---
+
+# 39. Practical Interpretation
+
+The results suggest that survey-based academic and behavioural information contains useful predictive signals related to students' current academic-performance categories.
+
+The study also shows that model choice depends on the intended purpose.
+
+Random Forest produced the strongest overall Macro F1 and accuracy.
+
+However, Logistic Regression identified a larger proportion of students in the Low-performance category.
+
+This difference is important if machine learning is considered for future academic-support applications.
+
+A prediction model should be used only as one source of information together with academic advice, student communication, and professional judgement.
+
+---
+
+# 40. Future Work
+
+Future research could improve and extend this study by:
+
+- Increasing the sample size
+- Collecting data from a wider range of private higher education institutions
+- Using an independent external validation dataset
+- Collecting longitudinal student data
+- Comparing additional machine-learning models
+- Studying model calibration
+- Examining subgroup performance
+- Using additional explainability methods
+- Combining survey data with institutional academic records
+- Developing an academic-support prototype
+- Evaluating the model in a real educational setting
+
+---
+
+# 41. Project Status
+
+The following major stages have been completed:
+
+- Research questionnaire preparation
+- Survey-data collection
+- Final dataset preparation
+- Data-quality checking
+- Participant eligibility screening
+- Predictor selection
+- Target definition
+- Target-leakage prevention
+- Data preprocessing
+- Logistic Regression development
+- Decision Tree development
+- Random Forest development
+- Baseline model evaluation
+- Hyperparameter tuning
+- Nested cross-validation
+- Accuracy evaluation
+- Macro Precision evaluation
+- Macro Recall evaluation
+- Macro F1 evaluation
+- Class-wise recall analysis
 - Confusion-matrix generation
 - Statistical comparison
-- System architecture diagram
-- Data-privacy protection
+- Model-stability analysis
+- Logistic Regression interpretation
+- Decision Tree visualization
+- Random Forest feature importance
+- Permutation importance
+- Final research figure generation
+- Final result-table generation
+- Final Google Colab analysis
+- GitHub documentation
 
-The current model outputs are preliminary because survey-data collection may continue. Final conclusions should be based on the final approved dataset.
-
----
-
-## 24. Group Members and Contributions
-
-### W. Seshan Sandeepa
-
-- **Index Number:** ITBIN-2312-0024
-- **Roles:** Repository and Version-Control Coordinator, Data Preprocessing Developer, Model-Evaluation Developer
-- **Main Contributions:**
-  - Created and maintained the GitHub repository structure
-  - Managed Git commits, version control and repository updates
-  - Configured the Python virtual environment and project dependencies
-  - Developed and tested the data-preprocessing workflow
-  - Implemented eligibility filtering and variable selection
-  - Implemented model-evaluation metrics
-  - Generated confusion matrices and statistical comparisons
-  - Integrated and tested the complete project workflow
-  - Added the system architecture diagram and project documentation
-
-### Wathsala Kithulgala
-
-- **Index Number:** ITBIN-2312-0025
-- **Roles:** Machine-Learning Model Developer, Research and Documentation Coordinator
-- **Main Contributions:**
-  - Supported the selection of research variables and model requirements
-  - Contributed to the questionnaire and data-collection process
-  - Supported the implementation of Logistic Regression, Decision Tree and Random Forest
-  - Contributed to model-training and hyperparameter-tuning decisions
-  - Supported the preparation of research methodology content
-  - Contributed to dataset documentation and ethical-handling information
-  - Reviewed model outputs and preliminary findings
-  - Reviewed the final report and repository documentation
+The repository contains the main computational work used to support preparation of the final research manuscript.
 
 ---
 
-## 25. Academic Notice
+# 42. Authors
 
-This repository was created for an undergraduate academic research assignment.
+## Wathsala Kithulgala
 
-The results should not be used to make high-stakes academic decisions about individual students. The models are developed for educational and research purposes using a limited survey-based dataset.
+**Index Number:** ITBIN-2312-0025  
+**Faculty:** Faculty of Information Technology  
+**Institution:** Horizon Campus, Sri Lanka
+
+Main areas of contribution included:
+
+- Research development
+- Questionnaire and data collection
+- Machine-learning development
+- Model interpretation
+- Research documentation
+- Manuscript preparation
+
+## W. Seshan Sandeepa
+
+**Index Number:** ITBIN-2312-0024  
+**Faculty:** Faculty of Information Technology  
+**Institution:** Horizon Campus, Sri Lanka
+
+Main areas of contribution included:
+
+- GitHub repository management
+- Data preparation
+- Machine-learning workflow development
+- Model evaluation
+- Statistical analysis
+- Research documentation
+- Manuscript preparation
+
+---
+
+# 43. Research Title
+
+**A Comparative Study of Academic Performance Prediction Among Sri Lankan Private Campus Students Using Survey-Based Factors**
+
+---
+
+# 44. Academic and Ethical Notice
+
+This repository was developed as part of an undergraduate academic research project.
+
+The machine-learning models are intended for research and educational purposes.
+
+They should not independently be used to determine:
+
+- Student grades
+- Academic penalties
+- Admissions
+- Scholarships
+- Disciplinary actions
+- Other high-stakes educational decisions
+
+Machine-learning predictions should support, rather than replace, academic judgement and direct engagement with students.
+
+---
+
+# 45. Citation
+
+If the final research paper is published, the complete journal citation will be added here.
+
+Until then, the research may be referred to using the project title:
+
+> Wathsala Kithulgala and W. Seshan Sandeepa,  
+> **“A Comparative Study of Academic Performance Prediction Among Sri Lankan Private Campus Students Using Survey-Based Factors.”**
+
+---
+
+# 46. Repository Purpose
+
+The main purpose of this repository is to provide a transparent record of the computational work completed for the study.
+
+It allows readers to understand:
+
+- How the survey data were prepared
+- How participant eligibility was determined
+- Which predictors were used
+- Which variables were excluded
+- How target leakage was reduced
+- How the machine-learning models were developed
+- How hyperparameters were selected
+- How model performance was evaluated
+- How the models were statistically compared
+- How model interpretation was carried out
+- How the final research conclusions were supported
+
+The repository acts as supporting material for the final research paper while keeping participant-level survey information private.
