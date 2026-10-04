@@ -1,13 +1,18 @@
 """
-Train and compare Logistic Regression, Decision Tree and Random Forest.
+Final model-training workflow for the research project:
 
-Run this file from the project root folder:
+A Comparative Study of Academic Performance Prediction Among
+Sri Lankan Private Campus Students Using Survey-Based Factors.
 
-    python src/train_models.py
+Models:
+1. Logistic Regression
+2. Decision Tree
+3. Random Forest
 
-Before running, complete preprocessing:
-
-    python src/preprocessing.py
+Validation:
+- Stratified 5-fold outer cross-validation
+- Stratified 3-fold inner GridSearchCV
+- Macro F1 as the primary tuning metric
 """
 
 from __future__ import annotations
@@ -43,35 +48,44 @@ from sklearn.preprocessing import (
 from sklearn.tree import DecisionTreeClassifier
 
 
-# ------------------------------------------------------------
-# File locations
-# ------------------------------------------------------------
+# ---------------------------------------------------------
+# PATHS
+# ---------------------------------------------------------
 
 DATA_FILE = Path(
     "data/processed/cleaned_survey_data.csv"
 )
 
-RESULTS_FOLDER = Path("results")
+RESULTS_FOLDER = Path("results/tables")
 
-FOLD_RESULTS_FILE = RESULTS_FOLDER / "cross_validation_scores.csv"
-SUMMARY_FILE = RESULTS_FOLDER / "model_summary.csv"
-PARAMETERS_FILE = RESULTS_FOLDER / "best_parameters.json"
+FOLD_RESULTS_FILE = (
+    RESULTS_FOLDER / "nested_cv_fold_results.csv"
+)
+
+FINAL_RESULTS_FILE = (
+    RESULTS_FOLDER / "final_model_results.csv"
+)
+
+PARAMETERS_FILE = (
+    RESULTS_FOLDER / "nested_cv_best_parameters.json"
+)
 
 TARGET_COLUMN = "academic_performance_level"
 
 RANDOM_STATE = 42
 
 
-# ------------------------------------------------------------
-# Predictor groups
-# ------------------------------------------------------------
+# ---------------------------------------------------------
+# FEATURE GROUPS
+# ---------------------------------------------------------
 
+# Unordered categorical predictors
 NOMINAL_FEATURES = [
     "degree_area",
     "study_mode",
-    "part_time_work",
 ]
 
+# Ordered categorical predictors
 ORDINAL_FEATURES = [
     "year_of_study",
     "attendance",
@@ -88,15 +102,24 @@ ORDINAL_FEATURES = [
     "study_resources",
 ]
 
-ALL_FEATURES = NOMINAL_FEATURES + ORDINAL_FEATURES
+# Binary predictor
+BINARY_FEATURES = [
+    "part_time_work",
+]
+
+ALL_FEATURES = (
+    NOMINAL_FEATURES
+    + ORDINAL_FEATURES
+    + BINARY_FEATURES
+)
 
 
-# ------------------------------------------------------------
-# Ordered categories
-# The order must match the Google Form answer choices.
-# ------------------------------------------------------------
+# ---------------------------------------------------------
+# ORDERED CATEGORIES
+# ---------------------------------------------------------
 
 ORDINAL_CATEGORIES = [
+
     # year_of_study
     [
         "Year 1",
@@ -108,17 +131,17 @@ ORDINAL_CATEGORIES = [
     # attendance
     [
         "Less than 50%",
-        "50%–69%",
-        "70%–84%",
+        "50–69%",
+        "70–84%",
         "85% and above",
     ],
 
     # study_hours
     [
-        "Less than 1 hour",
+        "<1 hour",
         "1–2 hours",
         "3–4 hours",
-        "More than 4 hours",
+        ">4 hours",
     ],
 
     # lms_usage
@@ -146,10 +169,10 @@ ORDINAL_CATEGORIES = [
 
     # sleep_hours
     [
-        "Less than 5 hours",
+        "<5 hours",
         "5–6 hours",
         "7–8 hours",
-        "More than 8 hours",
+        ">8 hours",
     ],
 
     # motivation
@@ -183,10 +206,10 @@ ORDINAL_CATEGORIES = [
 
     # travel_time
     [
-        "Less than 30 minutes",
+        "<30 minutes",
         "30 minutes–1 hour",
         "1–2 hours",
-        "More than 2 hours",
+        ">2 hours",
     ],
 
     # study_resources
@@ -199,18 +222,26 @@ ORDINAL_CATEGORIES = [
 ]
 
 
-def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load the cleaned survey dataset."""
+# ---------------------------------------------------------
+# LOAD DATA
+# ---------------------------------------------------------
+
+def load_data():
+    """Load the private cleaned modelling dataset."""
 
     if not DATA_FILE.exists():
+
         raise FileNotFoundError(
-            "Cleaned dataset not found. "
-            "Run python src/preprocessing.py first."
+            "Cleaned dataset was not found. "
+            "Run src/preprocessing.py first."
         )
 
     df = pd.read_csv(DATA_FILE)
 
-    required_columns = ALL_FEATURES + [TARGET_COLUMN]
+    required_columns = (
+        ALL_FEATURES
+        + [TARGET_COLUMN]
+    )
 
     missing_columns = [
         column
@@ -219,33 +250,47 @@ def load_data() -> tuple[pd.DataFrame, pd.Series]:
     ]
 
     if missing_columns:
+
         raise ValueError(
-            "The cleaned dataset is missing these columns: "
+            "Missing required columns: "
             + ", ".join(missing_columns)
         )
 
-    X = df[ALL_FEATURES].copy()
-    y = df[TARGET_COLUMN].copy()
+    X = df[
+        ALL_FEATURES
+    ].copy()
+
+    y = df[
+        TARGET_COLUMN
+    ].copy()
 
     if y.isna().any():
+
         raise ValueError(
-            "The target column contains missing values."
+            "Target contains missing values."
         )
 
     y = y.astype(int)
 
     valid_labels = {0, 1, 2}
 
-    if not set(y.unique()).issubset(valid_labels):
+    if not set(
+        y.unique()
+    ).issubset(valid_labels):
+
         raise ValueError(
-            "The target must contain only 0, 1 and 2."
+            "Target must contain only 0, 1 and 2."
         )
 
     return X, y
 
 
-def create_preprocessor() -> ColumnTransformer:
-    """Create preprocessing steps for the predictor variables."""
+# ---------------------------------------------------------
+# PREPROCESSOR
+# ---------------------------------------------------------
+
+def create_preprocessor():
+    """Create preprocessing for all predictor groups."""
 
     nominal_pipeline = Pipeline(
         steps=[
@@ -283,7 +328,28 @@ def create_preprocessor() -> ColumnTransformer:
         ]
     )
 
-    return ColumnTransformer(
+    binary_pipeline = Pipeline(
+        steps=[
+            (
+                "imputer",
+                SimpleImputer(
+                    strategy="most_frequent"
+                ),
+            ),
+            (
+                "encoder",
+                OrdinalEncoder(
+                    categories=[
+                        ["No", "Yes"]
+                    ],
+                    handle_unknown="use_encoded_value",
+                    unknown_value=-1,
+                ),
+            ),
+        ]
+    )
+
+    preprocessor = ColumnTransformer(
         transformers=[
             (
                 "nominal",
@@ -295,13 +361,23 @@ def create_preprocessor() -> ColumnTransformer:
                 ordinal_pipeline,
                 ORDINAL_FEATURES,
             ),
+            (
+                "binary",
+                binary_pipeline,
+                BINARY_FEATURES,
+            ),
         ],
         remainder="drop",
     )
 
+    return preprocessor
 
-def create_models() -> dict[str, dict[str, Any]]:
-    """Create model pipelines and small parameter grids."""
+
+# ---------------------------------------------------------
+# MODEL DEFINITIONS
+# ---------------------------------------------------------
+
+def create_models():
 
     logistic_pipeline = Pipeline(
         steps=[
@@ -359,7 +435,8 @@ def create_models() -> dict[str, dict[str, Any]]:
         ]
     )
 
-    return {
+    models = {
+
         "Logistic Regression": {
             "pipeline": logistic_pipeline,
             "parameters": {
@@ -367,7 +444,7 @@ def create_models() -> dict[str, dict[str, Any]]:
                     0.1,
                     1,
                     10,
-                ],
+                ]
             },
         },
 
@@ -409,11 +486,17 @@ def create_models() -> dict[str, dict[str, Any]]:
         },
     }
 
+    return models
 
-def create_scoring() -> dict[str, Any]:
-    """Create evaluation metrics."""
+
+# ---------------------------------------------------------
+# SCORING
+# ---------------------------------------------------------
+
+def create_scoring():
 
     return {
+
         "accuracy": "accuracy",
 
         "precision_macro": make_scorer(
@@ -436,51 +519,69 @@ def create_scoring() -> dict[str, Any]:
     }
 
 
-def convert_json_value(value: Any) -> Any:
-    """Convert NumPy values into JSON-compatible values."""
+# ---------------------------------------------------------
+# JSON CONVERSION
+# ---------------------------------------------------------
 
-    if isinstance(value, np.integer):
+def convert_json_value(value: Any):
+
+    if isinstance(
+        value,
+        np.integer
+    ):
         return int(value)
 
-    if isinstance(value, np.floating):
+    if isinstance(
+        value,
+        np.floating
+    ):
         return float(value)
 
-    if isinstance(value, np.ndarray):
+    if isinstance(
+        value,
+        np.ndarray
+    ):
         return value.tolist()
 
     return value
 
 
-def main() -> None:
-    """Run nested cross-validation for all three models."""
+# ---------------------------------------------------------
+# MAIN TRAINING
+# ---------------------------------------------------------
+
+def main():
 
     try:
+
         X, y = load_data()
 
-        class_distribution = (
+        print(
+            "\nDataset loaded successfully."
+        )
+
+        print(
+            "Eligible participants:",
+            len(X)
+        )
+
+        print(
+            "Predictors:",
+            len(X.columns)
+        )
+
+        print(
+            "\nTarget distribution:"
+        )
+
+        print(
             y.value_counts()
             .sort_index()
         )
 
-        print("\nDataset loaded successfully")
-        print("Rows:", len(X))
-        print("Predictors:", len(X.columns))
-
-        print(
-            "\nTarget distribution "
-            "(0=Low, 1=Average, 2=High):"
-        )
-        print(class_distribution)
-
-        smallest_class = int(
-            class_distribution.min()
-        )
-
-        if smallest_class < 5:
-            raise ValueError(
-                "The smallest class has fewer than five records. "
-                "Stratified 5-Fold Cross-Validation cannot be used."
-            )
+        # -------------------------------------------------
+        # CROSS-VALIDATION
+        # -------------------------------------------------
 
         outer_cv = StratifiedKFold(
             n_splits=5,
@@ -495,30 +596,54 @@ def main() -> None:
         )
 
         scoring = create_scoring()
-        model_definitions = create_models()
 
-        all_fold_results: list[dict[str, Any]] = []
-        all_summaries: list[dict[str, Any]] = []
-        all_best_parameters: dict[str, list[dict[str, Any]]] = {}
+        model_definitions = (
+            create_models()
+        )
+
+        all_fold_results = []
+        all_summary_results = []
+        all_best_parameters = {}
 
         RESULTS_FOLDER.mkdir(
             parents=True,
-            exist_ok=True,
+            exist_ok=True
         )
 
-        for model_name, definition in model_definitions.items():
+        # -------------------------------------------------
+        # TRAIN EACH MODEL
+        # -------------------------------------------------
 
-            print("\n" + "=" * 60)
-            print("Training:", model_name)
-            print("=" * 60)
+        for (
+            model_name,
+            definition
+        ) in model_definitions.items():
+
+            print(
+                "\n"
+                + "=" * 60
+            )
+
+            print(
+                "Training:",
+                model_name
+            )
+
+            print(
+                "=" * 60
+            )
 
             grid_search = GridSearchCV(
-                estimator=definition["pipeline"],
-                param_grid=definition["parameters"],
+                estimator=definition[
+                    "pipeline"
+                ],
+                param_grid=definition[
+                    "parameters"
+                ],
                 scoring="f1_macro",
                 cv=inner_cv,
-                n_jobs=-1,
                 refit=True,
+                n_jobs=-1,
                 error_score="raise",
             )
 
@@ -533,79 +658,129 @@ def main() -> None:
                 error_score="raise",
             )
 
-            fold_best_parameters = []
+            fold_parameters = []
+
+            # ---------------------------------------------
+            # SAVE OUTER-FOLD RESULTS
+            # ---------------------------------------------
 
             for fold_number in range(5):
 
                 fold_result = {
-                    "Model": model_name,
-                    "Fold": fold_number + 1,
-                    "Accuracy": cv_results[
-                        "test_accuracy"
-                    ][fold_number],
-                    "Macro Precision": cv_results[
-                        "test_precision_macro"
-                    ][fold_number],
-                    "Macro Recall": cv_results[
-                        "test_recall_macro"
-                    ][fold_number],
-                    "Macro F1": cv_results[
-                        "test_f1_macro"
-                    ][fold_number],
+
+                    "Model":
+                        model_name,
+
+                    "Fold":
+                        fold_number + 1,
+
+                    "Accuracy":
+                        cv_results[
+                            "test_accuracy"
+                        ][fold_number],
+
+                    "Macro Precision":
+                        cv_results[
+                            "test_precision_macro"
+                        ][fold_number],
+
+                    "Macro Recall":
+                        cv_results[
+                            "test_recall_macro"
+                        ][fold_number],
+
+                    "Macro F1":
+                        cv_results[
+                            "test_f1_macro"
+                        ][fold_number],
                 }
 
-                all_fold_results.append(fold_result)
+                all_fold_results.append(
+                    fold_result
+                )
 
-                fitted_search = cv_results[
-                    "estimator"
-                ][fold_number]
+                fitted_search = (
+                    cv_results[
+                        "estimator"
+                    ][fold_number]
+                )
 
                 best_params = {
-                    key: convert_json_value(value)
+                    key:
+                    convert_json_value(
+                        value
+                    )
                     for key, value
-                    in fitted_search.best_params_.items()
+                    in fitted_search
+                    .best_params_
+                    .items()
                 }
 
-                fold_best_parameters.append(
+                fold_parameters.append(
                     {
-                        "fold": fold_number + 1,
-                        "parameters": best_params,
+                        "fold":
+                            fold_number + 1,
+
+                        "parameters":
+                            best_params,
                     }
                 )
 
             all_best_parameters[
                 model_name
-            ] = fold_best_parameters
+            ] = fold_parameters
+
+            # ---------------------------------------------
+            # MODEL SUMMARY
+            # ---------------------------------------------
 
             metric_columns = {
-                "Accuracy": "test_accuracy",
-                "Macro Precision": "test_precision_macro",
-                "Macro Recall": "test_recall_macro",
-                "Macro F1": "test_f1_macro",
+
+                "Accuracy":
+                    "test_accuracy",
+
+                "Macro Precision":
+                    "test_precision_macro",
+
+                "Macro Recall":
+                    "test_recall_macro",
+
+                "Macro F1":
+                    "test_f1_macro",
             }
 
             summary = {
-                "Model": model_name,
+                "Model":
+                    model_name
             }
 
-            for display_name, result_key in metric_columns.items():
+            for (
+                display_name,
+                result_key
+            ) in metric_columns.items():
 
-                values = cv_results[result_key]
+                values = cv_results[
+                    result_key
+                ]
 
                 summary[
                     f"{display_name} Mean"
-                ] = float(np.mean(values))
+                ] = float(
+                    np.mean(values)
+                )
 
                 summary[
                     f"{display_name} SD"
                 ] = float(
                     np.std(
                         values,
-                        ddof=1,
+                        ddof=1
                     )
                 )
 
-            all_summaries.append(summary)
+            all_summary_results.append(
+                summary
+            )
 
             print(
                 "Accuracy:",
@@ -635,43 +810,66 @@ def main() -> None:
                 f"{summary['Macro F1 SD']:.4f}",
             )
 
+        # -------------------------------------------------
+        # SAVE FINAL RESULTS
+        # -------------------------------------------------
+
         fold_results_df = pd.DataFrame(
             all_fold_results
         )
 
-        summary_df = pd.DataFrame(
-            all_summaries
+        final_results_df = pd.DataFrame(
+            all_summary_results
         )
 
         fold_results_df.to_csv(
             FOLD_RESULTS_FILE,
-            index=False,
+            index=False
         )
 
-        summary_df.to_csv(
-            SUMMARY_FILE,
-            index=False,
+        final_results_df.to_csv(
+            FINAL_RESULTS_FILE,
+            index=False
         )
 
         PARAMETERS_FILE.write_text(
             json.dumps(
                 all_best_parameters,
-                indent=4,
+                indent=4
             ),
-            encoding="utf-8",
+            encoding="utf-8"
         )
 
-        best_model_row = summary_df.loc[
-            summary_df["Macro F1 Mean"].idxmax()
-        ]
+        # -------------------------------------------------
+        # DISPLAY OVERALL RESULT
+        # -------------------------------------------------
 
-        print("\n" + "=" * 60)
-        print("Training completed successfully")
-        print("=" * 60)
+        best_model_row = (
+            final_results_df.loc[
+                final_results_df[
+                    "Macro F1 Mean"
+                ].idxmax()
+            ]
+        )
 
         print(
-            "\nBest model based on mean Macro F1:",
-            best_model_row["Model"],
+            "\n"
+            + "=" * 60
+        )
+
+        print(
+            "Nested cross-validation completed."
+        )
+
+        print(
+            "=" * 60
+        )
+
+        print(
+            "\nHighest mean Macro F1:",
+            best_model_row[
+                "Model"
+            ]
         )
 
         print(
@@ -682,18 +880,48 @@ def main() -> None:
                         "Macro F1 Mean"
                     ]
                 ),
-                4,
-            ),
+                4
+            )
         )
 
-        print("\nSaved fold scores to:")
-        print(FOLD_RESULTS_FILE)
+        print(
+            "\nImportant:"
+        )
 
-        print("\nSaved model summary to:")
-        print(SUMMARY_FILE)
+        print(
+            "The model with the highest mean "
+            "Macro F1 is not automatically best "
+            "for every practical objective."
+        )
 
-        print("\nSaved selected parameters to:")
-        print(PARAMETERS_FILE)
+        print(
+            "Class-wise recall and statistical "
+            "results must also be considered."
+        )
+
+        print(
+            "\nSaved fold results to:"
+        )
+
+        print(
+            FOLD_RESULTS_FILE
+        )
+
+        print(
+            "\nSaved final model results to:"
+        )
+
+        print(
+            FINAL_RESULTS_FILE
+        )
+
+        print(
+            "\nSaved fold-level best parameters to:"
+        )
+
+        print(
+            PARAMETERS_FILE
+        )
 
     except (
         FileNotFoundError,
@@ -703,8 +931,14 @@ def main() -> None:
         pd.errors.ParserError,
     ) as error:
 
-        print("\nModel training failed.")
-        print("Reason:", error)
+        print(
+            "\nModel training failed."
+        )
+
+        print(
+            "Reason:",
+            error
+        )
 
 
 if __name__ == "__main__":
